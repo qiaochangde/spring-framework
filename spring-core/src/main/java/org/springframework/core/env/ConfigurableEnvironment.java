@@ -166,6 +166,7 @@ public interface ConfigurableEnvironment extends Environment, ConfigurableProper
 	 * @since 3.1.2
 	 * @see org.springframework.context.support.AbstractApplicationContext#setParent
 	 */
+	// 将给定的父容器中的环境变量信息合并到子容器的环境中。在合并之后发生的对父容器环境的任何更改都不会反应在子容器环境中
 	void merge(ConfigurableEnvironment parent);
 
 }

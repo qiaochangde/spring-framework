@@ -513,10 +513,12 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		return this.applicationListeners;
 	}
 
+	// Spring Bean的加载与解析
 	@Override
 	public void refresh() throws BeansException, IllegalStateException {
 		synchronized (this.startupShutdownMonitor) {
 			// Prepare this context for refreshing.
+			// 刷新上下文前的准备工作
 			prepareRefresh();
 
 			// Tell the subclass to refresh the internal bean factory.
@@ -598,6 +600,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		}
 
 		// Initialize any placeholder property sources in the context environment.
+		// 空实现，需要子类去实现
 		initPropertySources();
 
 		// Validate that all properties marked as required are resolvable:
