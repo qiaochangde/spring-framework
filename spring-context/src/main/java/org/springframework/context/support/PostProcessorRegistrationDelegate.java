@@ -53,6 +53,23 @@ final class PostProcessorRegistrationDelegate {
 	}
 
 
+	/**
+	 * 处理BeanFactoryPostProcessor
+	 * 1.先处理BeanDefinitionRegistryPostProcessor
+	 * 		1.1 优先处理入参beanFactoryPostProcessors， 判断是否是BeanDefinitionRegistryPostProcessor类型的
+	 * 		1.2 再处理实现了PriorityOrdered的BeanDefinitionRegistryPostProcessor类
+	 * 		1.3 再处理实现了Ordered的BeanDefinitionRegistryPostProcessor类
+	 * 		1.4 最后处理既没有实现PriorityOrdered和Ordered的BeanDefinitionRegistryPostProcessor
+	 * 	以上都需要调用postProcessBeanDefinitionRegistry方法，调用完此方法后再调用BeanDefinitionRegistryPostProcessor的父类方法postProcessBeanFactory
+	 *
+	 * 2.再处理BeanFactoryPostProcessor
+	 * 		2.1 先处理实现了PriorityOrdered接口的BeanFactoryPostProcessor
+	 * 		2.2 再处理实现了Ordered接口的BeanFactoryPostProcessor
+	 * 		2.3 最后处理既没有实现PriorityOrdered和Ordered的BeanFactoryPostProcessor
+	 * 	以上都直接调用	BeanFactoryPostProcessor的postProcessBeanFactory
+	 * @param beanFactory
+	 * @param beanFactoryPostProcessors
+	 */
 	public static void invokeBeanFactoryPostProcessors(
 			ConfigurableListableBeanFactory beanFactory, List<BeanFactoryPostProcessor> beanFactoryPostProcessors) {
 
@@ -61,10 +78,16 @@ final class PostProcessorRegistrationDelegate {
 
 		if (beanFactory instanceof BeanDefinitionRegistry) {
 			BeanDefinitionRegistry registry = (BeanDefinitionRegistry) beanFactory;
+
 			List<BeanFactoryPostProcessor> regularPostProcessors = new ArrayList<>();
+
+			// 定义 BeanDefinitionRegistryPostProcessor的集合
 			List<BeanDefinitionRegistryPostProcessor> registryProcessors = new ArrayList<>();
 
 			for (BeanFactoryPostProcessor postProcessor : beanFactoryPostProcessors) {
+				// 分开处理BeanDefinitionRegistryPostProcessor和其他的BeanFactoryPostProcessor,
+				// 如果是BeanDefinitionRegistryPostProcessor,直接调用postProcessBeanDefinitionRegistry方法进行处理，处理完之后放入到registryProcessors集合当中
+				// 如果不是BeanDefinitionRegistryPostProcessor,直接放入regularPostProcessors集合中进行后续处理
 				if (postProcessor instanceof BeanDefinitionRegistryPostProcessor) {
 					BeanDefinitionRegistryPostProcessor registryProcessor =
 							(BeanDefinitionRegistryPostProcessor) postProcessor;
@@ -83,10 +106,15 @@ final class PostProcessorRegistrationDelegate {
 			List<BeanDefinitionRegistryPostProcessor> currentRegistryProcessors = new ArrayList<>();
 
 			// First, invoke the BeanDefinitionRegistryPostProcessors that implement PriorityOrdered.
+			// 根据BeanDefinitionRegistryPostProcessor类型获取所有的bean的名字
 			String[] postProcessorNames =
 					beanFactory.getBeanNamesForType(BeanDefinitionRegistryPostProcessor.class, true, false);
+
+			// 循环匹配BeanDefinitionRegistryPostProcessor是否实现了PriorityOrdered接口，
+			// 优先处理实现了PriorityOrdered的类
 			for (String ppName : postProcessorNames) {
 				if (beanFactory.isTypeMatch(ppName, PriorityOrdered.class)) {
+					// 实例化并放入currentRegistryProcessors集合当中
 					currentRegistryProcessors.add(beanFactory.getBean(ppName, BeanDefinitionRegistryPostProcessor.class));
 					processedBeans.add(ppName);
 				}
@@ -97,6 +125,7 @@ final class PostProcessorRegistrationDelegate {
 			currentRegistryProcessors.clear();
 
 			// Next, invoke the BeanDefinitionRegistryPostProcessors that implement Ordered.
+			// 处理完实现了PriorityOrdered类，再处理实现了Ordered接口的processor的类
 			postProcessorNames = beanFactory.getBeanNamesForType(BeanDefinitionRegistryPostProcessor.class, true, false);
 			for (String ppName : postProcessorNames) {
 				if (!processedBeans.contains(ppName) && beanFactory.isTypeMatch(ppName, Ordered.class)) {
@@ -113,6 +142,7 @@ final class PostProcessorRegistrationDelegate {
 			boolean reiterate = true;
 			while (reiterate) {
 				reiterate = false;
+				// 处理其他的未实现PriorityOrdered和Ordered的BeanDefinitionRegistryPostProcessor类
 				postProcessorNames = beanFactory.getBeanNamesForType(BeanDefinitionRegistryPostProcessor.class, true, false);
 				for (String ppName : postProcessorNames) {
 					if (!processedBeans.contains(ppName)) {
@@ -128,6 +158,7 @@ final class PostProcessorRegistrationDelegate {
 			}
 
 			// Now, invoke the postProcessBeanFactory callback of all processors handled so far.
+			// 最后调用所有的postProcessBeanFactory方法处理
 			invokeBeanFactoryPostProcessors(registryProcessors, beanFactory);
 			invokeBeanFactoryPostProcessors(regularPostProcessors, beanFactory);
 		}
