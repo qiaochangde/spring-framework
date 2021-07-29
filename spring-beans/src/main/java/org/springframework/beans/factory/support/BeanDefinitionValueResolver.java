@@ -202,7 +202,10 @@ class BeanDefinitionValueResolver {
 		else if (value instanceof TypedStringValue) {
 			// Convert value to target type here.
 			TypedStringValue typedStringValue = (TypedStringValue) value;
+
+			// evaluate方法中解析了typedStringValue中包含的#{}，还需具体分析 TODO
 			Object valueObject = evaluate(typedStringValue);
+
 			try {
 				Class<?> resolvedTargetType = resolveTargetType(typedStringValue);
 				if (resolvedTargetType != null) {
